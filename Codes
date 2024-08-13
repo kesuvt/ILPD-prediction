@@ -24,7 +24,7 @@ Installing necessary packages
 Link to Dataset : https://archive.ics.uci.edu/dataset/225/ilpd+indian+liver+patient+dataset
 ```{r}
 
-df <- read.csv("C:/Users/akvt5/OneDrive/Documents/Academics/UU Course Docs/Semester 2/COM 740/Indian Liver Patient Dataset (ILPD).csv", stringsAsFactors = TRUE)
+df <- read.csv(".../Indian Liver Patient Dataset (ILPD).csv", stringsAsFactors = TRUE)
 
 ```
 

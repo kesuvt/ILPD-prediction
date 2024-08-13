@@ -1,0 +1,230 @@
+---
+title: "CW_Codes"
+author: "Akshay"
+date: "2023-11-29"
+output: html_document
+---
+
+Installing necessary packages
+```{r}
+# install.packages("dplyr")
+# install.packages("rpart.plot")
+# install.packages("caret")
+# install.packages("magrittr")
+# install.packages("e1071")
+# install.packages("Metrics")
+# install.packages("vctrs")
+# install.packages("devtools")
+# devtools::install_github("dongyuanwu/RSBID")
+```
+
+
+
+1) Reading the data set
+Link to Dataset : https://archive.ics.uci.edu/dataset/225/ilpd+indian+liver+patient+dataset
+```{r}
+
+df <- read.csv("C:/Users/akvt5/OneDrive/Documents/Academics/UU Course Docs/Semester 2/COM 740/Indian Liver Patient Dataset (ILPD).csv", stringsAsFactors = TRUE)
+
+```
+
+2) Understanding the data set
+```{r}
+
+#View(df)
+dim(df)
+summary(df)
+str(df)
+
+# Distribution of the target variable
+table(df$Selector)
+X <- table (df$Selector)
+barplot(X, main = "Distribution of class variable", xlab = "Selector", ylab = "frequency", col = blues9)
+
+
+
+```
+Observations :
+a) There are 11 attributes and 583 data points in the data set
+b) Dependent variable "Selector" has 2 classes and is highly imbalanced
+c) There is only one categorical independent variables, "Gender" and the rest are numerical variables
+
+
+
+3) Cleaning the data
+
+```{r}
+# a) Checking for missing values
+sum(is.na.data.frame(df))
+
+# Removing the missing values since there are only 4 of them
+df <- na.omit(df)
+
+# Checking for missing values again
+sum(is.na.data.frame(df))
+
+```
+Observations :
+a) Data set had just 4 missing values which has been removed
+
+
+```{r}
+# b) Removing duplicate entries
+dim(df)
+library(dplyr)
+df <- distinct(df)
+dim(df)
+
+```
+Observations :
+a) The dimensions of the data has changed after removing the duplicates, from 579 to 566 which means there were 13 duplicate entries in the data.
+
+
+
+
+
+
+```{r}
+# d) Factorizing category variables
+str(df)
+df$Gender <- as.factor(df$Gender)
+df$Selector <- as.factor(df$Selector)
+str(df)
+
+```
+
+```{r}
+# Checking for outliers using boxplots
+
+N <- c("Age","TB","DB","Alkphos","Sgpt","Sgot","TP","ALB","A.G.Ratio")
+for (i in N) {
+  boxplot(df[i], main = " Box Plot", xlab = i)
+} 
+
+```
+
+
+
+
+```{r}
+# Data balancing with SMOTE_NC
+
+plot(df$Selector)
+table(df$Selector)
+
+library("RSBID")
+set.seed(123)
+df <- SMOTE_NC(df,11)
+Y <- table (df$Selector)
+barplot(Y, main = "Distribution of class variable", xlab = "Selector", ylab = "frequency", col = blues9)
+table(df$Selector)
+
+```
+```{r}
+# Scaling of the data
+
+summary(df)
+names <- c("Age","TB","DB","Alkphos","Sgpt","Sgot","TP","ALB","A.G.Ratio")
+for (x in names) {
+  df[,x] <- scale(df[,x])
+  
+}
+
+summary(df)
+```
+
+
+```{r}
+
+# Correlation pot
+library(corrplot)
+(df.cor <- cor(df[-c(2,11)]))
+corrplot(df.cor)
+
+# Following pairs seems to have high correlation, so these will be looked at again.
+cor(df$TB,df$DB)
+cor(df$Sgpt, df$Sgot)
+cor(df$TP, df$ALB)
+
+```
+
+
+
+4) Modelling the Data
+
+```{r}
+# Removing "TB" from the Data Set
+df <- df[-3]
+
+# a) Splitting the data into train(80%) and test(20%)
+library(caret)
+library(magrittr)
+set.seed(123)
+train.index <- df$Selector%>%
+  createDataPartition(p = 0.8, list = FALSE)
+train <- df[train.index,]
+test <- df[-train.index,]
+table(train$Selector)
+table(test$Selector)
+
+
+```
+
+
+
+```{r}
+# b) Classification tree
+library(MLmetrics)
+library(rpart.plot)
+set.seed(123)
+CT_Model <- rpart(train$Selector~., data = train)
+CT_Model
+rpart.plot(CT_Model)
+CT_pred <- predict(CT_Model, test, type = 'class')
+confusionMatrix(CT_pred,test$Selector)
+Accuracy(y_pred = CT_pred, y_true = test$Selector)
+Precision(y_pred = CT_pred, y_true = test$Selector, positive = NULL)
+Recall(y_pred = CT_pred, y_true = test$Selector, positive = NULL)
+F1_Score(y_pred = CT_pred, y_true = test$Selector, positive = NULL)
+
+```
+
+
+```{r}
+# c) SVM Model
+library(e1071)
+set.seed(123)
+SVM_Model <- svm(train$Selector~., data=train, kernel="linear", cost=0.10,scale=FALSE)
+summary(SVM_Model)
+SVM_pred <- predict(SVM_Model, test)
+confusionMatrix(SVM_pred,test$Selector)
+Accuracy(y_pred = SVM_pred, y_true = test$Selector)
+Precision(y_pred = SVM_pred, y_true = test$Selector, positive = NULL)
+Recall(y_pred = SVM_pred, y_true = test$Selector, positive = NULL)
+F1_Score(y_pred = SVM_pred, y_true = test$Selector, positive = NULL)
+```
+
+
+```{r}
+# d) Naive-Bayes Model
+library(e1071)
+set.seed(123)
+NB_Model <- naiveBayes(train$Selector~., train)
+summary(NB_Model)
+NB_pred <- predict(NB_Model, test)
+confusionMatrix(NB_pred,test$Selector)
+Accuracy(y_pred = NB_pred, y_true = test$Selector)
+Precision(y_pred = NB_pred, y_true = test$Selector, positive = NULL)
+Recall(y_pred = NB_pred, y_true = test$Selector, positive = NULL)
+F1_Score(y_pred = NB_pred, y_true = test$Selector, positive = NULL)
+```
+
+
+
+
+
+
+
+
+
+
